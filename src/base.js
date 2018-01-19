@@ -376,7 +376,7 @@ function getObject(tableName, subject) {
                     cache.cacheData(tableName+"::"+subject, item, options.cacheSeconds);
                     resolve(item);
                 }
-                reject("Item does not exist: " + tableName + "::" + subject);
+                resolve(null);
             })
             .catch(function(err) {
                 console.log(err);
