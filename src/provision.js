@@ -131,31 +131,37 @@ Outputs:<% tables.forEach(function(table) { %>
 var template = ejs.compile(data);
 
 function generateCFN(project, tables, extraParameters) {
-    return template({tables: tables, project: project, extraParameters: extraParameters});
+    return template({
+        tables: tables,
+        project: project,
+        extraParameters: extraParameters
+    });
 }
 
 function deployStack(project, stack, environment) {
     var stackName = environment + "-" + project;
     var stackParams = [{
-      ParameterKey: "Unit",
-      ParameterValue: "techops",
-      UsePreviousValue: false
-    },{
-      ParameterKey: "Product",
-      ParameterValue: "cloud-engineering",
-      UsePreviousValue: false
-    },{
-      ParameterKey: "Subproduct",
-      ParameterValue: "bdp",
-      UsePreviousValue: false
-    },{
-      ParameterKey: "Version",
-      ParameterValue: "1.0",
-      UsePreviousValue: false
+        ParameterKey: "Unit",
+        ParameterValue: "techops",
+        UsePreviousValue: false
+    }, {
+        ParameterKey: "Product",
+        ParameterValue: "cloud-engineering",
+        UsePreviousValue: false
+    }, {
+        ParameterKey: "Subproduct",
+        ParameterValue: "bdp",
+        UsePreviousValue: false
+    }, {
+        ParameterKey: "Version",
+        ParameterValue: "1.0",
+        UsePreviousValue: false
     }]
-    return new bluebird.Promise(function(resolve, reject) {
-        cloudformation.describeStacks({StackName: stackName}).promise()
-            .then(function(d) {
+    return new bluebird.Promise(function (resolve, reject) {
+        cloudformation.describeStacks({
+                StackName: stackName
+            }).promise()
+            .then(function (d) {
                 // stack exists, let's update it
                 var params = {
                     StackName: stackName,
@@ -164,28 +170,30 @@ function deployStack(project, stack, environment) {
                     Parameters: stackParams
                 }
                 cloudformation.updateStack(params).promise()
-                    .then(function(d) {
-                        var waiter = cloudformation.waitFor('stackUpdateComplete', {StackName: stackName}).promise();
-                        waiter.then(function(d) {
-                            getStackOutputs(stackName)
-                                .then(function(d) {
-                                      resolve(d);
-                                })
-                                .catch(function(err) {
-                                   reject(err);
-                                });
+                    .then(function (d) {
+                        var waiter = cloudformation.waitFor('stackUpdateComplete', {
+                            StackName: stackName
+                        }).promise();
+                        waiter.then(function (d) {
+                                getStackOutputs(stackName)
+                                    .then(function (d) {
+                                        resolve(d);
+                                    })
+                                    .catch(function (err) {
+                                        reject(err);
+                                    });
                             })
-                        .catch(function(err) {
-                            reject(err);
-                        });
+                            .catch(function (err) {
+                                reject(err);
+                            });
                     })
-                    .catch(function(err) {
-                        if(new RegExp("No updates").test(err.message)) {
+                    .catch(function (err) {
+                        if (new RegExp("No updates").test(err.message)) {
                             getStackOutputs(stackName)
-                                .then(function(d) {
+                                .then(function (d) {
                                     resolve(d);
                                 })
-                                .catch(function(err) {
+                                .catch(function (err) {
                                     reject(err);
                                 });
                         } else {
@@ -193,7 +201,7 @@ function deployStack(project, stack, environment) {
                         }
                     });
             })
-            .catch(function(err) {
+            .catch(function (err) {
                 // does not exist yet, let's create it
                 var params = {
                     StackName: stackName,
@@ -202,22 +210,24 @@ function deployStack(project, stack, environment) {
                     Parameters: stackParams
                 }
                 cloudformation.createStack(params).promise()
-                    .then(function(d) {
-                        var waiter = cloudformation.waitFor('stackCreateComplete', {StackName: stackName}).promise();
-                        waiter.then(function(d) {
-                            getStackOutputs(stackName)
-                                .then(function(d) {
-                                      resolve(d);
-                                })
-                                .catch(function(err) {
-                                   reject(err);
-                                });
+                    .then(function (d) {
+                        var waiter = cloudformation.waitFor('stackCreateComplete', {
+                            StackName: stackName
+                        }).promise();
+                        waiter.then(function (d) {
+                                getStackOutputs(stackName)
+                                    .then(function (d) {
+                                        resolve(d);
+                                    })
+                                    .catch(function (err) {
+                                        reject(err);
+                                    });
                             })
-                        .catch(function(err) {
-                            reject(err);
-                        });
+                            .catch(function (err) {
+                                reject(err);
+                            });
                     })
-                    .catch(function(err) {
+                    .catch(function (err) {
                         reject(err);
                     });
             });
@@ -225,21 +235,25 @@ function deployStack(project, stack, environment) {
 }
 
 function getStackOutputs(stackName) {
-    return new bluebird.Promise(function(resolve, reject) {
-        cloudformation.describeStacks({StackName: stackName}).promise()
-            .then(function(d) {
+    return new bluebird.Promise(function (resolve, reject) {
+        cloudformation.describeStacks({
+                StackName: stackName
+            }).promise()
+            .then(function (d) {
                 // console.log(d);
-                if(d.Stacks) {
+                if (d.Stacks) {
                     var hash = {};
-                    d.Stacks[0].Outputs.forEach(function(item) {
+                    d.Stacks[0].Outputs.forEach(function (item) {
                         hash[item.ExportName] = item.OutputValue;
                     });
                     resolve(hash);
                 } else {
-                    reject({'message': 'stack not found'})
+                    reject({
+                        'message': 'stack not found'
+                    })
                 }
             })
-            .catch(function(err) {
+            .catch(function (err) {
                 reject(err);
             });
     });
@@ -252,83 +266,98 @@ function deploy(project, tables, environment) {
 
 function deleteStack(project, environment) {
     var stackName = environment + "-" + project;
-    return new bluebird.Promise(function(resolve, reject) {
-        cloudformation.deleteStack({StackName: stackName}).promise()
-            .then(function(d) {
-                var waiter = cloudformation.waitFor('stackDeleteComplete', {StackName: stackName}).promise();
-                    waiter.then(function(d) {
+    return new bluebird.Promise(function (resolve, reject) {
+        cloudformation.deleteStack({
+                StackName: stackName
+            }).promise()
+            .then(function (d) {
+                var waiter = cloudformation.waitFor('stackDeleteComplete', {
+                    StackName: stackName
+                }).promise();
+                waiter.then(function (d) {
                         resolve(d);
                     })
-                    .catch(function(err) {
+                    .catch(function (err) {
                         reject(err);
                     });
             })
-            .catch(function(err) {
+            .catch(function (err) {
                 reject(err);
             });
     });
 }
 
 function createTableDirect(name) {
-    return new bluebird.Promise(function(resolve, reject) {
-            var params = {
-                AttributeDefinitions: [
-                    {AttributeName: "id", AttributeType: "S"},
-                    {AttributeName: "hash", AttributeType: "S"},
-                    {AttributeName: "predicate", AttributeType: "S"},
-                    {AttributeName: "value", AttributeType: "S"}
-                ],
-                KeySchema:  [
-                    {AttributeName: "id", KeyType: "HASH"},
-                    {AttributeName: "hash", KeyType: "RANGE"}
-                ],
-                ProvisionedThroughput: {
-                    ReadCapacityUnits: 5,
-                    WriteCapacityUnits: 5
+    return new bluebird.Promise(function (resolve, reject) {
+        var params = {
+            AttributeDefinitions: [{
+                    AttributeName: "id",
+                    AttributeType: "S"
                 },
-                GlobalSecondaryIndexes: [
-                    {
-                      IndexName: "predicate-index",
-                      KeySchema: [
-                        {
-                          AttributeName: "predicate",
-                          KeyType: "HASH"
-                        }
-                      ],
-                      Projection: {
+                {
+                    AttributeName: "hash",
+                    AttributeType: "S"
+                },
+                {
+                    AttributeName: "predicate",
+                    AttributeType: "S"
+                },
+                {
+                    AttributeName: "value",
+                    AttributeType: "S"
+                }
+            ],
+            KeySchema: [{
+                    AttributeName: "id",
+                    KeyType: "HASH"
+                },
+                {
+                    AttributeName: "hash",
+                    KeyType: "RANGE"
+                }
+            ],
+            ProvisionedThroughput: {
+                ReadCapacityUnits: 5,
+                WriteCapacityUnits: 5
+            },
+            GlobalSecondaryIndexes: [{
+                    IndexName: "predicate-index",
+                    KeySchema: [{
+                        AttributeName: "predicate",
+                        KeyType: "HASH"
+                    }],
+                    Projection: {
                         ProjectionType: "ALL"
-                      },
-                      ProvisionedThroughput: {
-                        ReadCapacityUnits: "5",
-                        WriteCapacityUnits: "5"
-                      }
                     },
-                    {
-                      IndexName: "value-index",
-                      KeySchema: [
-                        {
-                          AttributeName: "value",
-                          KeyType: "HASH"
-                        }
-                      ],
-                      Projection: {
-                        ProjectionType: "ALL"
-                      },
-                      ProvisionedThroughput: {
+                    ProvisionedThroughput: {
                         ReadCapacityUnits: "5",
                         WriteCapacityUnits: "5"
-                      }
                     }
-                ],
-                TableName: name
-            }
-            const createPromise = dynamodb.createTable(params).promise();
-            createPromise.then(function(response) {
-                    resolve(response);
-                }).catch(function(err) {
-                    reject(err);
-                });
+                },
+                {
+                    IndexName: "value-index",
+                    KeySchema: [{
+                        AttributeName: "value",
+                        KeyType: "HASH"
+                    }],
+                    Projection: {
+                        ProjectionType: "ALL"
+                    },
+                    ProvisionedThroughput: {
+                        ReadCapacityUnits: "5",
+                        WriteCapacityUnits: "5"
+                    }
+                }
+            ],
+            TableName: name
+        }
+        const createPromise = dynamodb.createTable(params).promise();
+        createPromise.then(function (response) {
+            resolve(response);
+        }).catch(function (err) {
+            reject(err);
         });
+    });
 }
 
 exports.generateCFN = generateCFN;

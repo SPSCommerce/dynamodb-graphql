@@ -10,11 +10,13 @@ function getNode(type, id) {
 }
 
 function listNodes(type, token) {
-    // TODO - add token to base call and response
-    var predicated = base.getSubjectsWithPredicate(options.tableName(type), "id");
-    return new bluebird.Promise(function(resolve, reject) {
-        predicated.then(function(d) {
-            resolve({"nodes": d.subjects, "token": null});
+    var predicated = base.getSubjectsWithPredicate(options.tableName(type), "id", token);
+    return new bluebird.Promise(function (resolve, reject) {
+        predicated.then(function (d) {
+            resolve({
+                "nodes": d.subjects,
+                "token": d.pageInfo.token
+            });
         });
     });
 }
@@ -32,13 +34,11 @@ function deleteNode(type, id) {
 
 
 function findNodesWithAttribute(type, attr, token) {
-    // TODO - add token to base call and response
-    return base.getSubjectsWithPredicate(options.tableName(type), attr);
+    return base.getSubjectsWithPredicate(options.tableName(type), attr, token);
 }
 
 function filterNodes(type, attr, value, token) {
-    // TODO - add token to base call and response
-    return base.getSubjectsWithPredicateValue(options.tableName(type), attr, value);
+    return base.getSubjectsWithPredicateValue(options.tableName(type), attr, value, token);
 }
 
 
@@ -50,7 +50,7 @@ exports.findNodesWithAttribute = findNodesWithAttribute;
 exports.filterNodes = filterNodes;
 
 
-exports.deploy = function(project, tables, environment) {
+exports.deploy = function (project, tables, environment) {
     return provision.deploy(project, tables, environment);
 };
 
