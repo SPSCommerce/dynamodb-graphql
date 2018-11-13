@@ -24,7 +24,7 @@
   "keywords": [],
   "license": "MIT",
   "main": "src/index.js",
-  "name": "@bluelines/dynamodb-graphql",
+  "name": "dynamodb-graphql",
   "scripts": {
     "coverage": "node_modules/.bin/nyc  -x src/**/**.spec.js --reporter=html npm test --timeout 30000 && cat coverage/index.html",
     "test": "mocha src/**/**.spec.js --timeout 30000"
