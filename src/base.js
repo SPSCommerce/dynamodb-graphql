@@ -257,13 +257,20 @@ function removeObject(tableName, subject) {
                     }
                 };
                 if(ops.length) {
-                    params.RequestItems[tableName] = ops;
-                    // TODO - batch the batch if it's too many
-                    var prom = dynamodb.batchWriteItem(params).promise();
-                    return prom.then(function(data) {
+                    var batchedOps = _.chunk(ops, 20)
+                    let writes = [];
+                    batchedOps.forEach(function(batch) {
+                        params.RequestItems[tableName] = batch;
+                        writes.push(dynamodb.batchWriteItem(params).promise())
+                    })
+                    return Promise.all(writes).then(function(data) {
+                        if (data.UnprocessedItems) {
+                            console.log('UNPROCESSED ITEMS : ')
+                            console.log(JSON.stringify(data.UnprocessedItems))
+                        }
                         cache.delCached(tableName+"::"+subject);
                         resolve({id: subject, status: true});
-                    }).catch(reject);
+                    }).catch(reject)
                 } else {
                     reject(new Error("nothing to do"));
                 }
@@ -332,6 +339,10 @@ function putObject(tableName, obj) {
                         writes.push(dynamodb.batchWriteItem(params).promise());
                     })
                     return Promise.all(writes).then(function(data) {
+                        if (data.UnprocessedItems) {
+                            console.log('UNPROCESSED ITEMS : ')
+                            console.log(JSON.stringify(data.UnprocessedItems))
+                        }
                         resolve({status: true, id: id, message: "success"});
                     }).catch(reject)
                 } else {
